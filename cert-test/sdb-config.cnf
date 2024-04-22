@@ -1,0 +1,3 @@
+[server]
+max_connections = 240
+bind_address = localhost

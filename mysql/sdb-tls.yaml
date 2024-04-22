@@ -1,0 +1,93 @@
+apiVersion: kubedb.com/v1alpha2
+kind: Singlestore
+metadata:
+  name: singlestore-sample
+  namespace: demo
+spec:
+  version: "8.5.7"
+  topology:
+    aggregator:
+      replicas: 2
+      podTemplate:
+        spec:
+          containers:
+          - name: singlestore
+            resources:
+              limits:
+                memory: "2Gi"
+                cpu: "500m"
+              requests:
+                memory: "2Gi"
+                cpu: "500m"
+            volumeMounts:
+            - name: test
+              mountPath: /etc/memsql/certs-test
+          volumes:
+          - name: test
+            secret:
+              secretName: sdb-secret
+      storage:
+        storageClassName: "standard"
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+    leaf:
+      replicas: 1
+      podTemplate:
+        spec:
+          containers:
+            - name: singlestore
+              resources:
+                limits:
+                  memory: "2Gi"
+                  cpu: "500m"
+                requests:
+                  memory: "2Gi"
+                  cpu: "500m"
+              volumeMounts:
+              - name: test
+                mountPath: /etc/memsql/certs-test     
+          volumes:
+          - name: test
+            secret:
+              secretName: sdb-secret                        
+      storage:
+        storageClassName: "standard"
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+  licenseSecret:
+    name: license-secret
+#  authSecret:
+#    name: given-secret
+  storageType: Durable
+  monitor:
+    agent: prometheus.io/operator
+    prometheus:
+      exporter:
+        port: 9104
+      serviceMonitor:
+        labels:
+          release: prometheus
+        interval: 10s
+  terminationPolicy: WipeOut
+  tls:
+    issuerRef:
+      apiGroup: cert-manager.io
+      kind: Issuer
+      name: sdb-issuer
+    certificates:
+    - alias: server
+      subject:
+        organizations:
+        - kubedb:server
+      dnsNames:
+      - localhost
+      ipAddresses:
+      - "127.0.0.1"
+  # configSecret:
+  #   name: sdb-configuration
